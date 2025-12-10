@@ -1,172 +1,94 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Customer Enquiry Manager</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 20px;
-    }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: #fff;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-    }
-    input, textarea, select, button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #007bff;
-      color: white;
-      cursor: pointer;
-      border: none;
-      transition: 0.2s;
-    }
-    button:hover { background: #0056b3; }
-    .enquiry {
-      background: #f9f9f9;
-      border: 1px solid #ddd;
-      padding: 12px;
-      border-radius: 10px;
-      margin-top: 12px;
-    }
-    .status { margin-top: 6px; font-weight: bold; }
-  </style>
-</head>
+// EnquiryForm.js
+import React, { useState } from "react";
+import { db } from "./firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-<body>
-  <div class="container">
-    <h1>Public Enquiry Form</h1>
+const EnquiryForm = () => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [department, setDepartment] = useState("Sales");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    <form id="enquiry-form">
-      <input id="name" type="text" placeholder="Full Name" required />
-      <input id="email" type="email" placeholder="Email Address" required />
-      <select id="topic" required>
-        <option value="General">General</option>
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await addDoc(collection(db, "enquiries"), {
+        name,
+        email,
+        department,
+        message,
+        status: "New",
+        createdAt: serverTimestamp()
+      });
+
+      alert("Enquiry submitted successfully!");
+      // reset form
+      setName("");
+      setEmail("");
+      setDepartment("Sales");
+      setMessage("");
+    } catch (error) {
+      console.error("Error submitting enquiry:", error);
+      alert("Failed to submit enquiry. Check console.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ maxWidth: "500px", margin: "auto" }}>
+      <h2>Public Enquiry Form</h2>
+      <input
+        type="text"
+        placeholder="Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        required
+        style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
+      />
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
+      />
+      <select
+        value={department}
+        onChange={(e) => setDepartment(e.target.value)}
+        style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
+      >
         <option value="Sales">Sales</option>
         <option value="Support">Support</option>
+        <option value="General">General</option>
       </select>
-      <textarea id="message" rows="4" placeholder="Your Message" required></textarea>
-      <button type="submit">Submit Enquiry</button>
-      <div id="form-status"></div>
+      <textarea
+        placeholder="Message"
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        required
+        style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        style={{
+          width: "100%",
+          padding: "10px",
+          backgroundColor: "#007bff",
+          color: "white",
+          border: "none",
+          cursor: loading ? "not-allowed" : "pointer"
+        }}
+      >
+        {loading ? "Submitting..." : "Submit Enquiry"}
+      </button>
     </form>
+  );
+};
 
-    <hr />
-
-    <h2>Staff Dashboard</h2>
-    <div id="enquiries-list">Please log in to view enquiries.</div>
-
-    <button id="login">Login with Google</button>
-    <button id="logout" style="display:none;">Logout</button>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, updateDoc, doc } 
-      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
-      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAqDsqgTeRD3sAXncZVPFkKinOVYZ2VXo4",
-      authDomain: "customer-enquiry-manager.firebaseapp.com",
-      projectId: "customer-enquiry-manager",
-      storageBucket: "customer-enquiry-manager.firebasestorage.app",
-      messagingSenderId: "917955055710",
-      appId: "1:917955055710:web:5fb547b9462eda55fde4cf",
-      measurementId: "G-890LYDT9CW"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
-
-    const form = document.getElementById("enquiry-form");
-    const formStatus = document.getElementById("form-status");
-    const list = document.getElementById("enquiries-list");
-
-    document.getElementById("login").onclick = () => signInWithPopup(auth, provider);
-    document.getElementById("logout").onclick = () => signOut(auth);
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      formStatus.textContent = "Submitting...";
-
-      try {
-        await addDoc(collection(db, "enquiries"), {
-          name: document.getElementById("name").value,
-          email: document.getElementById("email").value,
-          topic: document.getElementById("topic").value,
-          message: document.getElementById("message").value,
-          status: "New",
-          createdAt: serverTimestamp(),
-        });
-
-        formStatus.textContent = "Enquiry Submitted ✔";
-        form.reset();
-      } catch (error) {
-        console.error(error);
-        formStatus.textContent = "Submission Failed ❌";
-      }
-    });
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        document.getElementById("login").style.display = "none";
-        document.getElementById("logout").style.display = "block";
-        loadEnquiries();
-      } else {
-        list.innerHTML = "Login required to view enquiries.";
-        document.getElementById("login").style.display = "block";
-        document.getElementById("logout").style.display = "none";
-      }
-    });
-
-    function loadEnquiries() {
-      const q = query(collection(db, "enquiries"), orderBy("createdAt", "desc"));
-
-      onSnapshot(q, (snapshot) => {
-        list.innerHTML = "";
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          const div = document.createElement("div");
-          div.className = "enquiry";
-
-          div.innerHTML = `
-            <strong>${data.name} (${data.email})</strong><br>
-            <em>${data.topic}</em><br>
-            ${data.message}<br>
-            <div class="status">Status: ${data.status}</div>
-          `;
-
-          const statusSelect = document.createElement("select");
-          statusSelect.innerHTML = `
-            <option value="New">New</option>
-            <option value="Contacted">Contacted</option>
-            <option value="Closed">Closed</option>
-          `;
-          statusSelect.value = data.status;
-
-          statusSelect.onchange = () =>
-            updateDoc(doc(db, "enquiries", docSnap.id), { status: statusSelect.value });
-
-          div.appendChild(statusSelect);
-          list.appendChild(div);
-        });
-      });
-    }
-  </script>
-</body>
-</html>
+export default EnquiryForm;
