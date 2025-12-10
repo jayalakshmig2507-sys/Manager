@@ -1,94 +1,64 @@
-// EnquiryForm.js
-import React, { useState } from "react";
-import { db } from "./firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Public Enquiry Form</title>
+  <script type="module">
+    // Import Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js";
 
-const EnquiryForm = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [department, setDepartment] = useState("Sales");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+    const firebaseConfig = {
+      apiKey: "AIzaSyAqDsqgTeRD3sAXncZVPFkKinOVYZ2VXo4",
+      authDomain: "customer-enquiry-manager.firebaseapp.com",
+      projectId: "customer-enquiry-manager",
+      storageBucket: "customer-enquiry-manager.firebasestorage.app",
+      messagingSenderId: "917955055710",
+      appId: "1:917955055710:web:5fb547b9462eda55fde4cf",
+      measurementId: "G-890LYDT9CW"
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-    try {
-      await addDoc(collection(db, "enquiries"), {
-        name,
-        email,
-        department,
-        message,
-        status: "New",
-        createdAt: serverTimestamp()
-      });
+    window.submitEnquiry = async function(e) {
+      e.preventDefault();
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const department = document.getElementById("department").value;
+      const message = document.getElementById("message").value;
 
-      alert("Enquiry submitted successfully!");
-      // reset form
-      setName("");
-      setEmail("");
-      setDepartment("Sales");
-      setMessage("");
-    } catch (error) {
-      console.error("Error submitting enquiry:", error);
-      alert("Failed to submit enquiry. Check console.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: "500px", margin: "auto" }}>
-      <h2>Public Enquiry Form</h2>
-      <input
-        type="text"
-        placeholder="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        required
-        style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
-      />
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
-      />
-      <select
-        value={department}
-        onChange={(e) => setDepartment(e.target.value)}
-        style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
-      >
-        <option value="Sales">Sales</option>
-        <option value="Support">Support</option>
-        <option value="General">General</option>
-      </select>
-      <textarea
-        placeholder="Message"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        required
-        style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
-      />
-      <button
-        type="submit"
-        disabled={loading}
-        style={{
-          width: "100%",
-          padding: "10px",
-          backgroundColor: "#007bff",
-          color: "white",
-          border: "none",
-          cursor: loading ? "not-allowed" : "pointer"
-        }}
-      >
-        {loading ? "Submitting..." : "Submit Enquiry"}
-      </button>
-    </form>
-  );
-};
-
-export default EnquiryForm;
+      try {
+        await addDoc(collection(db, "enquiries"), {
+          name,
+          email,
+          department,
+          message,
+          status: "New",
+          createdAt: serverTimestamp()
+        });
+        alert("Enquiry submitted successfully!");
+        document.getElementById("enquiryForm").reset();
+      } catch (error) {
+        console.error("Error submitting enquiry:", error);
+        alert("Failed to submit enquiry. Check console.");
+      }
+    };
+  </script>
+</head>
+<body>
+  <h2>Public Enquiry Form</h2>
+  <form id="enquiryForm" onsubmit="submitEnquiry(event)" style="max-width:400px;margin:auto;">
+    <input type="text" id="name" placeholder="Name" required style="width:100%;margin-bottom:10px;padding:8px;" />
+    <input type="email" id="email" placeholder="Email" required style="width:100%;margin-bottom:10px;padding:8px;" />
+    <select id="department" style="width:100%;margin-bottom:10px;padding:8px;">
+      <option value="Sales">Sales</option>
+      <option value="Support">Support</option>
+      <option value="HR">HR</option>
+    </select>
+    <textarea id="message" placeholder="Your message" required style="width:100%;margin-bottom:10px;padding:8px;"></textarea>
+    <button type="submit" style="width:100%;padding:10px;background-color:#007bff;color:white;border:none;cursor:pointer;">
+      Submit Enquiry
+    </button>
+  </form>
+</body>
+</html>
