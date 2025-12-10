@@ -3,242 +3,170 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Customer Enquiry Inbox</title>
+  <title>Customer Enquiry Manager</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0;padding:20px;background:#f6f8fa}
-    .container{max-width:900px;margin:0 auto;background:white;padding:20px;border-radius:12px;box-shadow:0 6px 18px rgba(12,20,30,.06)}
-    h1{margin-top:0}
-    form{display:grid;gap:8px}
-    input,textarea,button,select{padding:10px;border:1px solid #e3e7ee;border-radius:8px;font-size:14px}
-    .flex{display:flex;gap:8px;align-items:center}
-    .enquiry{border:1px solid #eef2f6;padding:12px;border-radius:10px;margin-top:8px}
-    .meta{font-size:13px;color:#6b7280}
-    .status{padding:6px 10px;border-radius:999px;font-weight:600}
-    .status.New{background:#e6f4ff;color:#035388}
-    .status.Contacted{background:#fff7e6;color:#7a4a00}
-    .status.Closed{background:#eef7ee;color:#166534}
-    .actions{margin-top:8px}
-    .hidden{display:none}
-    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-    .btn{cursor:pointer}
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+    input, textarea, select, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+      border: none;
+      transition: 0.2s;
+    }
+    button:hover { background: #0056b3; }
+    .enquiry {
+      background: #f9f9f9;
+      border: 1px solid #ddd;
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    .status { margin-top: 6px; font-weight: bold; }
   </style>
 </head>
+
 <body>
   <div class="container">
-    <div class="topbar">
-      <h1>Customer Enquiry Inbox</h1>
-      <div id="auth-area">
-        <button id="login-google">Sign in with Google</button>
-        <button id="logout" class="hidden">Sign out</button>
-      </div>
-    </div>
+    <h1>Public Enquiry Form</h1>
 
-    <section aria-labelledby="public-form">
-      <h2 id="public-form">Public enquiry form</h2>
-      <form id="enquiry-form">
-        <input type="text" id="name" placeholder="Your name" required />
-        <input type="email" id="email" placeholder="Your email" required />
-        <select id="topic">
-          <option value="General">General</option>
-          <option value="Sales">Sales</option>
-          <option value="Support">Support</option>
-        </select>
-        <textarea id="message" rows="4" placeholder="Your message" required></textarea>
-        <div class="flex">
-          <button type="submit">Send enquiry</button>
-          <div id="form-status" style="font-size:13px;color:#0f172a;margin-left:8px"></div>
-        </div>
-      </form>
-    </section>
+    <form id="enquiry-form">
+      <input id="name" type="text" placeholder="Full Name" required />
+      <input id="email" type="email" placeholder="Email Address" required />
+      <select id="topic" required>
+        <option value="General">General</option>
+        <option value="Sales">Sales</option>
+        <option value="Support">Support</option>
+      </select>
+      <textarea id="message" rows="4" placeholder="Your Message" required></textarea>
+      <button type="submit">Submit Enquiry</button>
+      <div id="form-status"></div>
+    </form>
 
     <hr />
 
-    <section id="staff-panel" class="hidden">
-      <h2>Staff view — Enquiries (newest first)</h2>
-      <div id="enquiries-list">Loading…</div>
-    </section>
+    <h2>Staff Dashboard</h2>
+    <div id="enquiries-list">Please log in to view enquiries.</div>
 
-    <p style="margin-top:14px;font-size:13px;color:#6b7280">Notes: requires a Firebase project. Replace <code>firebaseConfig</code> in the code with your config and configure Firestore security rules to restrict writes/reads as needed.</p>
+    <button id="login">Login with Google</button>
+    <button id="logout" style="display:none;">Logout</button>
   </div>
 
   <script type="module">
-    // --- FIREBASE SETUP ---
-    // 1) Create a Firebase project and enable Firestore + Authentication (Google provider)
-    // 2) Paste your firebaseConfig object below
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, updateDoc, doc } 
+      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
+      from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, doc, updateDoc } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
-
-    // TODO: Replace with your Firebase config
-    // Firebase config updated from console
     const firebaseConfig = {
-  apiKey: "AIzaSyAqDsqgTeRD3sAXncZVPFkKinOVYZ2VXo4",
-  authDomain: "customer-enquiry-manager.firebaseapp.com",
-  projectId: "customer-enquiry-manager",
-  storageBucket: "customer-enquiry-manager.firebasestorage.app",
-  messagingSenderId: "917955055710",
-  appId: "1:917955055710:web:5fb547b9462eda55fde4cf",
-  measurementId: "G-890LYDT9CW"
-};
+      apiKey: "AIzaSyAqDsqgTeRD3sAXncZVPFkKinOVYZ2VXo4",
+      authDomain: "customer-enquiry-manager.firebaseapp.com",
+      projectId: "customer-enquiry-manager",
+      storageBucket: "customer-enquiry-manager.firebasestorage.app",
+      messagingSenderId: "917955055710",
+      appId: "1:917955055710:web:5fb547b9462eda55fde4cf",
+      measurementId: "G-890LYDT9CW"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
 
-    // DOM
-    const enquiryForm = document.getElementById('enquiry-form');
-    const formStatus = document.getElementById('form-status');
-    const enquiriesList = document.getElementById('enquiries-list');
-    const staffPanel = document.getElementById('staff-panel');
-    const loginBtn = document.getElementById('login-google');
-    const logoutBtn = document.getElementById('logout');
+    const form = document.getElementById("enquiry-form");
+    const formStatus = document.getElementById("form-status");
+    const list = document.getElementById("enquiries-list");
 
-    // Public form submits to Firestore
-    enquiryForm.addEventListener('submit', async (e) => {
+    document.getElementById("login").onclick = () => signInWithPopup(auth, provider);
+    document.getElementById("logout").onclick = () => signOut(auth);
+
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      formStatus.textContent = '';
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const topic = document.getElementById('topic').value;
-      const message = document.getElementById('message').value.trim();
-
-      if (!name || !email || !message) return;
+      formStatus.textContent = "Submitting...";
 
       try {
-        await addDoc(collection(db, 'enquiries'), {
-          name, email, topic, message,
-          status: 'New',
-          createdAt: serverTimestamp()
+        await addDoc(collection(db, "enquiries"), {
+          name: document.getElementById("name").value,
+          email: document.getElementById("email").value,
+          topic: document.getElementById("topic").value,
+          message: document.getElementById("message").value,
+          status: "New",
+          createdAt: serverTimestamp(),
         });
-        enquiryForm.reset();
-        formStatus.textContent = 'Sent — thank you!';
-      } catch (err) {
-        console.error(err);
-        formStatus.textContent = 'Error sending — try again.';
+
+        formStatus.textContent = "Enquiry Submitted ✔";
+        form.reset();
+      } catch (error) {
+        console.error(error);
+        formStatus.textContent = "Submission Failed ❌";
       }
     });
 
-    // Auth
-    loginBtn.addEventListener('click', async () => {
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (err) {
-        console.error(err);
-        alert('Sign-in failed. Check console.');
-      }
-    });
-    logoutBtn.addEventListener('click', async () => {
-      await signOut(auth);
-    });
-
-    // Listen for auth changes and toggle staff panel
-    onAuthStateChanged(auth, user => {
+    onAuthStateChanged(auth, (user) => {
       if (user) {
-        loginBtn.classList.add('hidden');
-        logoutBtn.classList.remove('hidden');
-        staffPanel.classList.remove('hidden');
-        startEnquiriesListener();
+        document.getElementById("login").style.display = "none";
+        document.getElementById("logout").style.display = "block";
+        loadEnquiries();
       } else {
-        loginBtn.classList.remove('hidden');
-        logoutBtn.classList.add('hidden');
-        staffPanel.classList.add('hidden');
-        stopEnquiriesListener();
+        list.innerHTML = "Login required to view enquiries.";
+        document.getElementById("login").style.display = "block";
+        document.getElementById("logout").style.display = "none";
       }
     });
 
-    // Real-time enquiries listener (newest-first)
-    let unsubscribe = null;
-    function startEnquiriesListener(){
-      const q = query(collection(db, 'enquiries'), orderBy('createdAt', 'desc'));
-      unsubscribe = onSnapshot(q, snapshot => {
-        enquiriesList.innerHTML = '';
-        if (snapshot.empty) {
-          enquiriesList.textContent = 'No enquiries yet.';
-          return;
-        }
-        snapshot.forEach(docSnap => {
+    function loadEnquiries() {
+      const q = query(collection(db, "enquiries"), orderBy("createdAt", "desc"));
+
+      onSnapshot(q, (snapshot) => {
+        list.innerHTML = "";
+        snapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          const id = docSnap.id;
-          const el = renderEnquiryItem({ id, ...data });
-          enquiriesList.appendChild(el);
+          const div = document.createElement("div");
+          div.className = "enquiry";
+
+          div.innerHTML = `
+            <strong>${data.name} (${data.email})</strong><br>
+            <em>${data.topic}</em><br>
+            ${data.message}<br>
+            <div class="status">Status: ${data.status}</div>
+          `;
+
+          const statusSelect = document.createElement("select");
+          statusSelect.innerHTML = `
+            <option value="New">New</option>
+            <option value="Contacted">Contacted</option>
+            <option value="Closed">Closed</option>
+          `;
+          statusSelect.value = data.status;
+
+          statusSelect.onchange = () =>
+            updateDoc(doc(db, "enquiries", docSnap.id), { status: statusSelect.value });
+
+          div.appendChild(statusSelect);
+          list.appendChild(div);
         });
-      }, err => {
-        enquiriesList.textContent = 'Error loading enquiries';
-        console.error(err);
       });
     }
-    function stopEnquiriesListener(){
-      if (unsubscribe) unsubscribe();
-      unsubscribe = null;
-    }
-
-    // Render single enquiry item
-    function renderEnquiryItem(item){
-      const wrap = document.createElement('div');
-      wrap.className = 'enquiry';
-
-      const title = document.createElement('div');
-      title.innerHTML = `<strong>${escapeHtml(item.name || '—')}</strong> <span class="meta">&lt;${escapeHtml(item.email || '')}&gt;</span>`;
-      wrap.appendChild(title);
-
-      const meta = document.createElement('div');
-      const ts = item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleString() : '—';
-      meta.className = 'meta';
-      meta.textContent = `${item.topic || 'General'} • ${ts}`;
-      wrap.appendChild(meta);
-
-      const msg = document.createElement('div');
-      msg.style.marginTop = '8px';
-      msg.textContent = item.message || '';
-      wrap.appendChild(msg);
-
-      const statusBadge = document.createElement('span');
-      statusBadge.className = `status ${escapeClass(item.status || 'New')}`;
-      statusBadge.textContent = item.status || 'New';
-      statusBadge.style.marginLeft = '8px';
-      wrap.appendChild(statusBadge);
-
-      const actions = document.createElement('div');
-      actions.className = 'actions';
-
-      const statusSelect = document.createElement('select');
-      statusSelect.innerHTML = `
-        <option value="Contacted">Contacted</option>
-        <option value="Closed">Closed</option>
-      `;
-      statusSelect.value = item.status;
-      statusSelect.addEventListener('change', () => updateStatus(item.id, statusSelect.value));
-
-      actions.appendChild(statusSelect);
-      wrap.appendChild(actions);
-
-      return wrap;
-    }
-
-    // Update status helper
-    async function updateStatus(id, newStatus){
-      try{
-        const docRef = doc(db, 'enquiries', id);
-        await updateDoc(docRef, { status: newStatus });
-      } catch(err){
-        console.error(err);
-        alert('Failed to update status');
-      }
-    }
-
-    // small helpers to avoid broken HTML injection
-    function escapeHtml(s){
-      if (!s) return '';
-      return s.replace(/[&<>"']/g, function(c){
-        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c];
-      });
-    }
-    function escapeClass(s){
-      return String(s).replace(/[^a-zA-Z0-9_-]/g,'');
-    }
-
   </script>
 </body>
 </html>
