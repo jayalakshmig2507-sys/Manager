@@ -71,6 +71,7 @@
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js';
 
     // TODO: Replace with your Firebase config
+    // Firebase config updated from console
     const firebaseConfig = {
       apiKey: "AIzaSyAqDsqgTeRD3sAXncZVPFkKinOVYZ2VXo4",
       authDomain: "customer-enquiry-manager.firebaseapp.com",
@@ -202,18 +203,15 @@
       const actions = document.createElement('div');
       actions.className = 'actions';
 
-      const contactedBtn = document.createElement('button');
-      contactedBtn.textContent = 'Mark Contacted';
-      contactedBtn.className = 'btn';
-      contactedBtn.addEventListener('click', () => updateStatus(item.id, 'Contacted'));
+      const statusSelect = document.createElement('select');
+      statusSelect.innerHTML = `
+        <option value="Contacted">Contacted</option>
+        <option value="Closed">Closed</option>
+      `;
+      statusSelect.value = item.status;
+      statusSelect.addEventListener('change', () => updateStatus(item.id, statusSelect.value));
 
-      const closedBtn = document.createElement('button');
-      closedBtn.textContent = 'Mark Closed';
-      closedBtn.className = 'btn';
-      closedBtn.addEventListener('click', () => updateStatus(item.id, 'Closed'));
-
-      actions.appendChild(contactedBtn);
-      actions.appendChild(closedBtn);
+      actions.appendChild(statusSelect);
       wrap.appendChild(actions);
 
       return wrap;
