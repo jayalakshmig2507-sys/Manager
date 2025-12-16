@@ -1,13 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Public Enquiry Form</title>
-  <script type="module">
-    // Import Firebase
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.6.1/firebase-firestore.js";
+  <meta charset="UTF-8">
+  <title>Mini CRM – Lead Capture</title>
 
-    // Your actual Firebase project config
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 40px;
+    }
+    .container {
+      background: #ffffff;
+      padding: 20px;
+      max-width: 400px;
+      margin: auto;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #message {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h2>New Lead</h2>
+
+    <form id="leadForm">
+      <input type="text" id="name" placeholder="Name" required>
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="text" id="company" placeholder="Company" required>
+      <input type="number" id="value" placeholder="Deal Value (€)" required>
+
+      <button type="submit">Submit Lead</button>
+    </form>
+
+    <p id="message"></p>
+  </div>
+
+  <!-- Firebase Script -->
+  <script type="module">
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    // 🔹 Your Firebase configuration
     const firebaseConfig = {
       apiKey: "AIzaSyAqDsqgTeRD3sAXncZVPFkKinOVYZ2VXo4",
       authDomain: "customer-enquiry-manager.firebaseapp.com",
@@ -18,48 +78,40 @@
       measurementId: "G-890LYDT9CW"
     };
 
+    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    window.submitEnquiry = async function(e) {
+    const form = document.getElementById("leadForm");
+    const message = document.getElementById("message");
+
+    // Handle form submit
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const name = document.getElementById("name").value;
-      const email = document.getElementById("email").value;
-      const department = document.getElementById("department").value;
-      const message = document.getElementById("message").value;
 
       try {
-        await addDoc(collection(db, "enquiries"), {
-          name,
-          email,
-          department,
-          message,
-          status: "New",
-          createdAt: serverTimestamp()
+        await addDoc(collection(db, "leads"), {
+          name: document.getElementById("name").value,
+          email: document.getElementById("email").value,
+          company: document.getElementById("company").value,
+          value: Number(document.getElementById("value").value),
+          stage: "New",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
         });
-        alert("Enquiry submitted successfully!");
-        document.getElementById("enquiryForm").reset();
+
+        message.style.color = "green";
+        message.innerText = "Lead submitted successfully!";
+        form.reset();
+
       } catch (error) {
-        console.error("Error submitting enquiry:", error);
-        alert("Failed to submit enquiry. Check console.");
+        message.style.color = "red";
+        message.innerText = "Error submitting lead";
+        console.error(error);
       }
-    };
+    });
+
   </script>
-</head>
-<body>
-  <h2>Public Enquiry Form</h2>
-  <form id="enquiryForm" onsubmit="submitEnquiry(event)" style="max-width:400px;margin:auto;">
-    <input type="text" id="name" placeholder="Name" required style="width:100%;margin-bottom:10px;padding:8px;" />
-    <input type="email" id="email" placeholder="Email" required style="width:100%;margin-bottom:10px;padding:8px;" />
-    <select id="department" style="width:100%;margin-bottom:10px;padding:8px;">
-      <option value="Sales">Sales</option>
-      <option value="Support">Support</option>
-      <option value="HR">HR</option>
-    </select>
-    <textarea id="message" placeholder="Your message" required style="width:100%;margin-bottom:10px;padding:8px;"></textarea>
-    <button type="submit" style="width:100%;padding:10px;background-color:#007bff;color:white;border:none;cursor:pointer;">
-      Submit Enquiry
-    </button>
-  </form>
+
 </body>
 </html>
